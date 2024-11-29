@@ -1,0 +1,227 @@
+{% extends 'transaction_mapper/base.html' %}
+
+{% block content %}
+<div class="container">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Chart of Accounts</h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="fas fa-upload me-2"></i>Upload Chart of Accounts
+            </button>
+            <button type="button" class="btn btn-danger" id="deleteAllButton">
+                <i class="fas fa-trash me-2"></i>Delete All Accounts
+            </button>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Warning:</strong> This will delete ALL accounts from the system. 
+                        This action cannot be undone.
+                    </p>
+                    <p>Are you sure you want to proceed?</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete All</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card stats-card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Accounts</h5>
+                    <h2 class="mb-0">{{ accounts.count }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Accounts Table -->
+    <div class="card">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Account ID</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Parent Account</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account in accounts %}
+                        <tr>
+                            <td>{{ account.account_id }}</td>
+                            <td>{{ account.name }}</td>
+                            <td>{{ account.account_type }}</td>
+                            <td>{{ account.parent_account.name|default:"-" }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No accounts found. Upload your chart of accounts to get started.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Upload Chart of Accounts</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Select File</label>
+                        <input type="file" class="form-control" name="file" accept=".csv,.xlsx" required>
+                        <div class="form-text">
+                            Upload a CSV or Excel file with the following columns:
+                            <ul>
+                                <li>accounting_code (required)</li>
+                                <li>accounting_name (required)</li>
+                                <li>account_type (required)</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="progress mb-3 d-none">
+                        <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div id="uploadStatus" class="alert d-none"></div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="uploadButton">Upload</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const uploadForm = $('#uploadForm');
+    const uploadButton = $('#uploadButton');
+    
+    if (uploadForm.length && uploadButton.length) {
+        uploadButton.click(function() {
+            const form = uploadForm[0];
+            const formData = new FormData(form);
+            const progressBar = $('.progress');
+            const progressBarInner = $('.progress-bar');
+            const statusDiv = $('#uploadStatus');
+            
+            // Disable the upload button and show progress
+            uploadButton.prop('disabled', true);
+            progressBar.removeClass('d-none');
+            progressBarInner.css('width', '0%');
+            statusDiv.removeClass('alert-success alert-danger').addClass('d-none');
+            
+            $.ajax({
+                url: '{% url "transaction_mapper:upload_accounts" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                xhr: function() {
+                    const xhr = new window.XMLHttpRequest();
+                    xhr.upload.addEventListener('progress', function(e) {
+                        if (e.lengthComputable) {
+                            const percent = Math.round((e.loaded / e.total) * 100);
+                            progressBarInner.css('width', percent + '%');
+                            progressBarInner.text(percent + '%');
+                        }
+                    });
+                    return xhr;
+                },
+                success: function(response) {
+                    statusDiv.removeClass('d-none alert-danger').addClass('alert-success');
+                    let message = `Successfully processed: ${response.accounts_created} created, ${response.accounts_updated} updated`;
+                    if (response.errors && response.errors.length > 0) {
+                        message += '<br><br>Errors:<br>' + response.errors.join('<br>');
+                    }
+                    statusDiv.html(message);
+                    
+                    // Reload the page after 2 seconds if there were no errors
+                    if (!response.errors || response.errors.length === 0) {
+                        setTimeout(() => location.reload(), 2000);
+                    }
+                },
+                error: function(xhr) {
+                    statusDiv.removeClass('d-none alert-success').addClass('alert-danger');
+                    const error = xhr.responseJSON ? xhr.responseJSON.error : 'Upload failed. Please try again.';
+                    statusDiv.html(error);
+                    console.error('Upload error:', xhr.responseText);
+                },
+                complete: function() {
+                    uploadButton.prop('disabled', false);
+                }
+            });
+        });
+    }
+
+    // Delete All Functionality
+    $('#deleteAllButton').click(function() {
+        $('#deleteConfirmModal').modal('show');
+    });
+
+    $('#confirmDeleteButton').click(function() {
+        const button = $(this);
+        button.prop('disabled', true);
+        button.html('<span class="spinner-border spinner-border-sm me-2"></span>Deleting...');
+        
+        $.ajax({
+            url: '{% url "transaction_mapper:delete_all_accounts" %}',
+            type: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr) {
+                button.prop('disabled', false);
+                button.html('Delete All');
+                const error = xhr.responseJSON ? xhr.responseJSON.error : 'Delete failed. Please try again.';
+                alert(error);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

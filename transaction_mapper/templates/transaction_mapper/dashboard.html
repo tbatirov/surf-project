@@ -1,0 +1,44 @@
+{% extends "transaction_mapper/base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>Dashboard</h1>
+        <p>Welcome, {{ user.get_full_name|default:user.username }}!</p>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Recent Transactions</h5>
+                <p class="card-text">View and manage your recent transactions.</p>
+                <a href="{% url 'transaction_mapper:transactions' %}" class="btn btn-primary">Go to Transactions</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Profile Settings</h5>
+                <p class="card-text">Update your profile and preferences.</p>
+                <a href="{% url 'transaction_mapper:profile' %}" class="btn btn-primary">Go to Profile</a>
+            </div>
+        </div>
+    </div>
+
+    {% if user.role.name == 'ADMIN' %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">User Management</h5>
+                <p class="card-text">Manage users and their permissions.</p>
+                <a href="{% url 'transaction_mapper:user_management' %}" class="btn btn-primary">Manage Users</a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

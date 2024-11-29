@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+{% block title %}Transactions{% endblock %}
+{% block content %}
+<h2>Transaction Management</h2>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">1. Upload Chart of Accounts</h5>
+            </div>
+            <div class="card-body">
+                <p>First, upload your chart of accounts file (CSV/Excel). The file should have these columns:</p>
+                <ul>
+                    <li>accounting_code: Unique identifier for each account</li>
+                    <li>accounting_name: Name of the account</li>
+                    <li>type: One of ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE</li>
+                </ul>
+                <form method="post" enctype="multipart/form-data" action="{% url 'upload_accounts' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="accountFile">Select Chart of Accounts File:</label>
+                        <input type="file" class="form-control-file" id="accountFile" name="accountFile" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload Accounts</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">2. Upload Transactions</h5>
+            </div>
+            <div class="card-body">
+                <p>Then, upload your transaction file (CSV/Excel). The file should have these columns:</p>
+                <ul>
+                    <li>transaction_id: Unique identifier for each transaction</li>
+                    <li>date: Transaction date</li>
+                    <li>time: Transaction time</li>
+                    <li>description: Transaction description</li>
+                    <li>account_number: Account number (must match accounting_code from chart of accounts)</li>
+                    <li>customer_name: Name of the customer</li>
+                    <li>transaction_type: DEBIT or CREDIT</li>
+                    <li>amount: Transaction amount</li>
+                </ul>
+                <form method="post" enctype="multipart/form-data" action="{% url 'upload_transactions' %}">
+                    {% csrf_token %}
+                    <div class="form-group">
+                        <label for="transactionFile">Select Transaction File:</label>
+                        <input type="file" class="form-control-file" id="transactionFile" name="transactionFile" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Upload Transactions</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if messages %}
+<div class="messages">
+    {% for message in messages %}
+    <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

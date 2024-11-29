@@ -1,0 +1,61 @@
+Transaction_ID;Date;Time;Description;Account_Number;Customer_Name;Transaction_Type;Amount
+T1001;23.11.2024;3:23:59;"Payment made for travel booking, including flights or accommodation.";AC7105;Customer 1;Debit;836.54
+T1002;25.03.2024;6:45:25;Fee incurred for courier and shipping services for goods or documents.;AC8299;Customer 2;Withdrawal;773.12
+T1003;10.11.2024;23:38:07;Deposit made to employees as part of monthly salary payments.;AC2150;Customer 3;Withdrawal;27.???
+T1004;17.06.2024;0:15:52;Adjustment of charges related to electricity consumption.;AC3129;Customer 4;Credit;547.78
+T1005;22.11.2024;0:51:02;Fee paid for doctor or medical consultation services.;AC1214;Customer 5;Deposit;510.14
+T1006;07.11.2024;2:20:09;Fee incurred for courier and shipping services for goods or documents.;AC4174;Customer 6;Deposit;896.81
+T1007;09.05.2024;7:24:31;Local government fee;AC4524;Customer 7;Debit;640.17
+T1008;22.04.2024;20:15:47;Payment made for purchasing software licenses or applications.;AC2616;Customer 8;Withdrawal;434.34
+T1009;28.02.2024;4:35:09;Consulting fee payment;AC6494;Customer 9;Withdrawal;570.23
+T1010;11.11.2024;7:31:18;Payment for hotel room booking as part of travel expenses.;AC7249;Customer 10;Withdrawal;335.24
+T1011;04.11.2024;21:41:11;Purchase of furniture items from a retail store.;AC5040;Customer 11;Payment;366.43
+T1012;15.04.2024;12:58:28;Cost incurred for vehicle maintenance and servicing.;AC1685;Customer 12;Credit;206.77
+T1013;13.11.2024;18:48:19;Fee incurred for courier and shipping services for goods or documents.;AC2472;Customer 13;Deposit;517.49
+T1014;23.08.2024;11:52:41;Home improvement materials;AC3592;Customer 14;Debit;619.54
+T1015;14.06.2024;9:33:07;Adjustment of charges related to electricity consumption.;AC5568;Customer 15;Credit;656.85
+T1016;30.06.2024;9:40:53;Payment for hotel room booking as part of travel expenses.;AC2223;Customer 16;Debit;581.64
+T1017;25.10.2024;9:04:24;Payment for fees related to school activities or programs.;AC3962;Customer 17;Payment;286.03
+T1018;08.06.2024;18:27:44;Online subscription payment;AC7655;Customer 18;Credit;919.54
+T1019;30.07.2024;19:31:33;Payment made for government-mandated taxes or duties.;AC7236;Customer 19;Deposit;664.78
+T1020;03.09.2024;21:55:35;Rental payment;AC7449;Customer 20;Withdrawal;341.59
+T1021;09.05.2024;9:11:09;Local government fee;AC4887;Customer 21;Withdrawal;61.96
+T1022;08.08.2024;9:29:58;"Repayment of loan installment, as per loan agreement.";AC9259;Customer 22;Withdrawal;520.52
+T1023;22.08.2024;12:55:59;Adjustment of charges related to electricity consumption.;AC4314;Customer 23;Payment;58.68
+T1024;11.11.2024;12:06:52;Fee paid for doctor or medical consultation services.;AC8167;Customer 24;Debit;87.93
+T1025;11.06.2024;8:47:05;Vehicle registration fee;AC3703;Customer 25;Deposit;754.61
+T1026;16.02.2024;0:55:51;Cost incurred for vehicle maintenance and servicing.;AC2192;Customer 26;Credit;447.51
+T1027;16.04.2024;12:31:20;Fee paid for doctor or medical consultation services.;AC5071;Customer 27;Withdrawal;640.48
+T1028;18.04.2024;22:02:50;Payment for renewal of gym membership subscription.;AC7249;Customer 28;Credit;550.3
+T1029;17.01.2024;10:45:30;Fee for maintaining an annual membership in a specific organization.;AC2384;Customer 29;Credit;687.62
+T1030;28.02.2024;19:55:32;Small business supplies;AC9795;Customer 30;Payment;437.08
+T1031;20.05.2024;9:48:35;Purchase of furniture items from a retail store.;AC1005;Customer 31;Withdrawal;701.49
+T1032;26.04.2024;10:09:24;E-commerce order payment;AC8674;Customer 32;Payment;586.38
+T1033;05.07.2024;22:20:08;Professional service fee;AC4854;Customer 33;Debit;22.69
+T1034;26.01.2024;18:30:11;Payment for renewal of gym membership subscription.;AC9519;Customer 34;Credit;963.19
+T1035;15.08.2024;21:14:47;Credit card payment;AC3124;Customer 35;Payment;904.91
+T1036;25.01.2024;5:46:01;Payment for subscription to internet services.;AC5377;Customer 36;Credit;356.91
+T1037;17.01.2024;14:54:47;Payment for fuel purchased at a fuel station.;AC6779;Customer 37;Deposit;626.69
+T1038;08.07.2024;14:47:00;Vehicle registration fee;AC6639;Customer 38;Deposit;196.68
+T1039;25.03.2024;23:25:41;Payment made for purchasing software licenses or applications.;AC4917;Customer 39;Withdrawal;303.26
+T1040;27.05.2024;9:32:36;Home improvement materials;AC6944;Customer 40;Deposit;433.75
+T1041;16.01.2024;17:50:31;Fee paid for doctor or medical consultation services.;AC1489;Customer 41;Deposit;294.93
+T1042;24.05.2024;8:16:16;"Repayment of loan installment, as per loan agreement.";AC7810;Customer 42;Debit;480.63
+T1043;20.10.2024;5:18:47;Late payment penalty fee;AC9472;Customer 43;Payment;327.66
+T1044;05.11.2024;13:51:43;Payment for hotel room booking as part of travel expenses.;AC4553;Customer 44;Withdrawal;561.06
+T1045;16.11.2024;2:08:23;Clothing store purchase;AC6734;Customer 45;Withdrawal;813.87
+T1046;05.07.2024;3:22:39;Fee for maintaining an annual membership in a specific organization.;AC2429;Customer 46;Withdrawal;768.99
+T1047;08.06.2024;5:27:16;"Payment made for travel booking, including flights or accommodation.";AC6816;Customer 47;Credit;103.29
+T1048;09.09.2024;16:00:00;Medical bill payment;AC4069;Customer 48;Credit;109.26
+T1049;11.05.2024;9:55:52;Consulting fee payment;AC9243;Customer 49;Withdrawal;937.6
+T1050;24.04.2024;18:08:01;Payment made for purchasing software licenses or applications.;AC9791;Customer 50;Payment;789.06
+T1051;25.06.2024;18:44:03;Credit card payment;AC4235;Customer 51;Withdrawal;341.88
+T1052;14.11.2024;14:06:11;Bonus or incentive payout;AC8116;Customer 52;Deposit;502.35
+T1053;08.02.2024;4:38:16;Payment for renewal of gym membership subscription.;AC6150;Customer 53;Withdrawal;622.37
+T1054;06.05.2024;13:53:49;Monetary contribution made as a donation to a charitable organization.;AC5046;Customer 54;Withdrawal;166.8
+T1055;14.11.2024;0:35:48;Bonus or incentive payout;AC2650;Customer 55;Deposit;769.94
+T1056;17.10.2024;3:35:49;Tuition fee payment;AC9658;Customer 56;Deposit;332.74
+T1057;10.04.2024;19:20:55;Payment for fees related to school activities or programs.;AC7842;Customer 57;Payment;808.36
+T1058;03.09.2024;8:51:00;Vehicle registration fee;AC6880;Customer 58;Deposit;361.5
+T1059;27.03.2024;22:41:37;Fee incurred for courier and shipping services for goods or documents.;AC8857;Customer 59;Deposit;612.51
+T1060;12.06.2024;13:08:00;Freelance work payment;AC4955;Customer 60;Credit;748.45

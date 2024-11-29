@@ -1,0 +1,22 @@
+{
+    "accounting_rules": {
+        "default_currency": "USD",
+        "debit_credit_rules": {
+            "ASSET": "debit",
+            "LIABILITY": "credit",
+            "EQUITY": "credit",
+            "REVENUE": "credit",
+            "EXPENSE": "debit"
+        }
+    },
+    "countries": {
+        "USA": {
+            "currency": "USD",
+            "tax_rate": 0.21
+        },
+        "UK": {
+            "currency": "GBP",
+            "tax_rate": 0.19
+        }
+    }
+}

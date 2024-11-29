@@ -1,0 +1,373 @@
+{% extends "transaction_mapper/base_new.html" %}
+
+{% block extra_css %}
+<!-- Add any extra CSS here -->
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-8">
+        <h1>Transactions</h1>
+    </div>
+    <div class="col-4 text-end">
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="fas fa-upload me-2"></i>Upload Transactions
+            </button>
+            <button type="button" class="btn btn-danger" id="deleteAllButton">
+                <i class="fas fa-trash me-2"></i>Delete All Transactions
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Modal -->
+<div class="modal fade" id="uploadModal" tabindex="-1" aria-labelledby="uploadModalLabel" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="uploadModalLabel">Upload Transactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Select File</label>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <div class="form-text">
+                            Upload a CSV or Excel file with the following columns:
+                            <ul>
+                                <li>date (required) - Format: DD.MM.YYYY (e.g., 31.12.2023)</li>
+                                <li>description (required)</li>
+                                <li>amount (required) - Use positive for debit, negative for credit</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="progress mb-3 d-none">
+                        <div class="progress-bar" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div id="uploadStatus" class="alert d-none"></div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Warning:</strong> This will delete ALL transactions from the system. 
+                    This action cannot be undone.
+                </p>
+                <p>Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-2">
+                        <label for="status" class="form-label">Status</label>
+                        <select name="status" id="status" class="form-select">
+                            <option value="">All</option>
+                            {% for status_code, status_label in status_choices %}
+                            <option value="{{ status_code }}" {% if filters.status == status_code %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="search" value="{{ filters.search }}"
+                            placeholder="Search transactions...">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_from" class="form-label">From Date</label>
+                        <input type="date" class="form-control" id="date_from" name="date_from"
+                            value="{{ filters.date_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="date_to" class="form-label">To Date</label>
+                        <input type="date" class="form-control" id="date_to" name="date_to" value="{{ filters.date_to }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="sort" class="form-label">Sort By</label>
+                        <select name="sort" id="sort" class="form-select">
+                            <option value="-date" {% if filters.sort == '-date' %}selected{% endif %}>Newest First</option>
+                            <option value="date" {% if filters.sort == 'date' %}selected{% endif %}>Oldest First</option>
+                            <option value="amount" {% if filters.sort == 'amount' %}selected{% endif %}>Amount (Low to High)
+                            </option>
+                            <option value="-amount" {% if filters.sort == '-amount' %}selected{% endif %}>Amount (High to
+                                Low)</option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label">&nbsp;</label>
+                        <button type="submit" class="btn btn-primary w-100">Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Description</th>
+                                <th>Amount</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Mapped Account</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions %}
+                            <tr>
+                                <td>{{ transaction.date }}</td>
+                                <td>
+                                    {{ transaction.description }}
+                                    {% if transaction.customer_name %}
+                                    <br><small class="text-muted">{{ transaction.customer_name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ transaction.amount }}</td>
+                                <td>{{ transaction.get_transaction_type_display }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.status == 'PENDING' %}bg-warning{% elif transaction.status == 'MAPPED' %}bg-info{% elif transaction.status == 'VERIFIED' %}bg-success{% else %}bg-danger{% endif %}">
+                                        {{ transaction.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if transaction.mapped_account %}
+                                    {{ transaction.mapped_account.name }}
+                                    {% else %}
+                                    <span class="text-muted">Not mapped</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                                            data-bs-target="#mapModal{{ transaction.transaction_id }}">
+                                            Map
+                                        </button>
+                                        {% if transaction.status == 'MAPPED' %}
+                                        <button type="button" class="btn btn-sm btn-success verify-btn"
+                                            data-transaction-id="{{ transaction.transaction_id }}">
+                                            Verify
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-danger reject-btn"
+                                            data-transaction-id="{{ transaction.transaction_id }}">
+                                            Reject
+                                        </button>
+                                        {% endif %}
+                                    </div>
+
+                                    <!-- Map Modal -->
+                                    <div class="modal fade" id="mapModal{{ transaction.transaction_id }}" tabindex="-1" aria-labelledby="mapModal{{ transaction.transaction_id }}Label" role="dialog">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title" id="mapModal{{ transaction.transaction_id }}Label">Map Transaction</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    <form id="mapForm{{ transaction.transaction_id }}" class="map-form">
+                                                        <input type="hidden" name="transaction_id"
+                                                            value="{{ transaction.transaction_id }}">
+                                                        <div class="mb-3">
+                                                            <label for="account{{ transaction.transaction_id }}"
+                                                                class="form-label">Select Account</label>
+                                                            <select class="form-select" id="account{{ transaction.transaction_id }}"
+                                                                name="account_id" required>
+                                                                <option value="">Choose account...</option>
+                                                                {% for account in accounts %}
+                                                                <option value="{{ account.account_id }}">
+                                                                    {{ account.name }}
+                                                                </option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="notes{{ transaction.transaction_id }}"
+                                                                class="form-label">Notes</label>
+                                                            <textarea class="form-control"
+                                                                id="notes{{ transaction.transaction_id }}" name="notes"
+                                                                rows="3"></textarea>
+                                                        </div>
+                                                    </form>
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                                    <button type="submit" form="mapForm{{ transaction.transaction_id }}"
+                                                        class="btn btn-primary">Map Transaction</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center">No transactions found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                {% if transactions.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if transactions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.previous_page_number }}&status={{ filters.status }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}">Previous</a>
+                        </li>
+                        {% endif %}
+
+                        {% for num in transactions.paginator.page_range %}
+                        {% if transactions.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                        {% else %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}&status={{ filters.status }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if transactions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ transactions.next_page_number }}&status={{ filters.status }}&search={{ filters.search }}&date_from={{ filters.date_from }}&date_to={{ filters.date_to }}&sort={{ filters.sort }}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript for AJAX calls -->
+{% block extra_js %}
+<script>
+$(document).ready(function() {
+    const uploadForm = $('#uploadForm');
+    
+    if (uploadForm.length) {
+        uploadForm.on('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const progressBar = $('.progress');
+            const progressBarInner = $('.progress-bar');
+            const statusDiv = $('#uploadStatus');
+            const submitButton = $('button[type="submit"]', uploadForm);
+            const modal = $('#uploadModal');
+            
+            // Disable submit button and show progress
+            submitButton.prop('disabled', true);
+            progressBar.removeClass('d-none');
+            progressBarInner.css('width', '0%').attr('aria-valuenow', '0');
+            statusDiv.removeClass('alert-success alert-danger').addClass('d-none');
+            
+            $.ajax({
+                url: '{% url "transaction_mapper:upload_transactions" %}',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                success: function(response) {
+                    statusDiv.removeClass('d-none alert-danger')
+                            .addClass('alert-success')
+                            .html('File uploaded successfully!');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 1500);
+                },
+                error: function(xhr) {
+                    console.log('Upload error:', xhr.responseText);
+                    let errorMessage = 'Error uploading file. Please try again.';
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.error) {
+                            errorMessage = response.error;
+                        }
+                    } catch (e) {
+                        console.error('Error parsing error response:', e);
+                    }
+                    statusDiv.removeClass('d-none alert-success')
+                            .addClass('alert-danger')
+                            .html(errorMessage);
+                },
+                complete: function() {
+                    submitButton.prop('disabled', false);
+                    progressBar.addClass('d-none');
+                }
+            });
+        });
+    }
+    
+    // Delete All Functionality
+    $('#deleteAllButton').click(function() {
+        $('#deleteConfirmModal').modal('show');
+    });
+
+    $('#confirmDeleteButton').click(function() {
+        const button = $(this);
+        button.prop('disabled', true);
+        button.html('<span class="spinner-border spinner-border-sm me-2"></span>Deleting...');
+        
+        $.ajax({
+            url: '{% url "transaction_mapper:delete_all_transactions" %}',
+            type: 'POST',
+            success: function(response) {
+                location.reload();
+            },
+            error: function(xhr) {
+                button.prop('disabled', false);
+                button.html('Delete All');
+                alert('Error deleting transactions. Please try again.');
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+{% endblock %}
