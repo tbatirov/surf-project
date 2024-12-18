@@ -1,23 +1,3 @@
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, SubmitField
-from wtforms.validators import DataRequired, Length, Email, EqualTo
-
-class RegistrationForm(FlaskForm):
-    username = StringField('Username',
-                           validators=[DataRequired(), Length(min=2, max=20)])
-    email = StringField('Email',
-                        validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password',
-                                     validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Sign Up')
-
-class LoginForm(FlaskForm):
-    email = StringField('Email',
-                        validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
-
 from django import forms
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm, PasswordChangeForm
 from django.core.exceptions import ValidationError
@@ -60,7 +40,33 @@ class CustomUserCreationForm(UserCreationForm):
         email = self.cleaned_data['email']
         if User.objects.filter(email=email).exists():
             raise ValidationError("This email is already registered.")
-        return email
+        return email<tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th>Amount</th>
+            <th>Debit Account</th>
+            <th>Credit Account</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr><td>{{ transaction.debit_account.account_id }} - {{ transaction.debit_account.name }}</td>
+        <td>{{ transaction.credit_account.account_id }} - {{ transaction.credit_account.name }}</td><div class="mb-3">
+            <label for="debitAccount{{ transaction.transaction_id }}" class="form-label">Debit Account</label>
+            <select class="form-select" id="debitAccount{{ transaction.transaction_id }}" required>
+                <option value="">Choose debit account...</option>
+                {% for account in accounts %}
+                <option value="{{ account.account_id }}">{{ account.account_id }} - {{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="mb-3">
+            <label for="creditAccount{{ transaction.transaction_id }}" class="form-label">Credit Account</label>
+            <select class="form-select" id="creditAccount{{ transaction.transaction_id }}" required>
+                <option value="">Choose credit account...</option>
+                {% for account in accounts %}
+                <option value="{{ account.account_id }}">{{ account.account_id }} - {{ account.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
 
 class UserProfileForm(forms.ModelForm):
     """Form for user profile information"""
@@ -99,8 +105,6 @@ class CustomPasswordChangeForm(PasswordChangeForm):
         if password1 and password2:
             if len(password1) < 8:
                 raise ValidationError("Password must be at least 8 characters long.")
-            if not any(char.isdigit() for char in password1):
-                raise ValidationError("Password must contain at least one number.")
-            if not any(char.isupper() for char in password1):
-                raise ValidationError("Password must contain at least one uppercase letter.")
+            if password1 != password2:
+                raise ValidationError("The two password fields didn't match.")
         return password2

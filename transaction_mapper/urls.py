@@ -4,6 +4,7 @@ from .views.profile import profile_view
 from .views.transactions import transaction_view, upload_transactions, delete_all_transactions, map_transaction, verify_transaction, reject_transaction
 from .views.users import user_management_view, register_view
 from .views.accounts import accounts_view, upload_accounts, delete_all_accounts
+from .views.auth import CustomLoginView, CustomLogoutView, CustomPasswordChangeView
 
 app_name = 'transaction_mapper'
 
@@ -21,4 +22,8 @@ urlpatterns = [
     path('accounts/', accounts_view, name='accounts'),
     path('accounts/upload/', upload_accounts, name='upload_accounts'),
     path('accounts/delete-all/', delete_all_accounts, name='delete_all_accounts'),
+    # Add authentication URLs
+    path('login/', CustomLoginView.as_view(), name='login'),
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
+    path('password/change/', CustomPasswordChangeView.as_view(), name='password_change'),
 ]

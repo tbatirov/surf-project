@@ -12,10 +12,13 @@
     <div class="col-4 text-end">
         <div class="btn-group">
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#uploadModal">
-                <i class="fas fa-upload me-2"></i>Upload Transactions
+                <i class="fas fa-upload me-2"></i>Upload
+            </button>
+            <button type="button" class="btn btn-success" id="mapAllButton">
+                <i class="fas fa-map-marker-alt me-2"></i>Map All
             </button>
             <button type="button" class="btn btn-danger" id="deleteAllButton">
-                <i class="fas fa-trash me-2"></i>Delete All Transactions
+                <i class="fas fa-trash me-2"></i>Delete All
             </button>
         </div>
     </div>
@@ -30,12 +33,13 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="uploadForm" enctype="multipart/form-data">
+                <form id="uploadForm" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
                     <div class="mb-3">
                         <label for="file" class="form-label">Select File</label>
-                        <input type="file" class="form-control" id="file" name="file" accept=".csv,.xlsx,.xls" required>
+                        <input type="file" class="form-control" id="file" name="file" accept=".csv" required>
                         <div class="form-text">
-                            Upload a CSV or Excel file with the following columns:
+                            Upload a CSV file with the following columns:
                             <ul>
                                 <li>date (required) - Format: DD.MM.YYYY (e.g., 31.12.2023)</li>
                                 <li>description (required)</li>
@@ -57,6 +61,34 @@
     </div>
 </div>
 
+<!-- Map All Modal -->
+<div class="modal fade" id="mapAllModal" tabindex="-1" aria-labelledby="mapAllModalLabel" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mapAllModalLabel">Map All Transactions</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label for="mapAllAccount" class="form-label">Select Account</label>
+                    <select class="form-select" id="mapAllAccount" required>
+                        <option value="">Choose an account...</option>
+                        {% for account in accounts %}
+                        <option value="{{ account.account_id }}">{{ account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="alert d-none" id="mapAllStatus"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirmMapAllButton">Map All</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Delete Confirmation Modal -->
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" role="dialog">
     <div class="modal-dialog">
@@ -66,12 +98,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-danger">
-                    <i class="fas fa-exclamation-triangle me-2"></i>
-                    <strong>Warning:</strong> This will delete ALL transactions from the system. 
-                    This action cannot be undone.
-                </p>
-                <p>Are you sure you want to proceed?</p>
+                Are you sure you want to delete all transactions? This action cannot be undone.
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -145,9 +172,9 @@
                                 <th>Date</th>
                                 <th>Description</th>
                                 <th>Amount</th>
-                                <th>Type</th>
+                                <th>Debit Account</th>
+                                <th>Credit Account</th>
                                 <th>Status</th>
-                                <th>Mapped Account</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -162,17 +189,23 @@
                                     {% endif %}
                                 </td>
                                 <td>{{ transaction.amount }}</td>
-                                <td>{{ transaction.get_transaction_type_display }}</td>
                                 <td>
                                     <span class="badge {% if transaction.status == 'PENDING' %}bg-warning{% elif transaction.status == 'MAPPED' %}bg-info{% elif transaction.status == 'VERIFIED' %}bg-success{% else %}bg-danger{% endif %}">
                                         {{ transaction.get_status_display }}
                                     </span>
                                 </td>
                                 <td>
-                                    {% if transaction.mapped_account %}
-                                    {{ transaction.mapped_account.name }}
+                                    {% if transaction.debit_account %}
+                                        {{ transaction.debit_account.account_id }} - {{ transaction.debit_account.name }}
                                     {% else %}
-                                    <span class="text-muted">Not mapped</span>
+                                        <span class="text-muted">Not mapped</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if transaction.credit_account %}
+                                        {{ transaction.credit_account.account_id }} - {{ transaction.credit_account.name }}
+                                    {% else %}
+                                        <span class="text-muted">Not mapped</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -219,11 +252,22 @@
                                                             </select>
                                                         </div>
                                                         <div class="mb-3">
-                                                            <label for="notes{{ transaction.transaction_id }}"
-                                                                class="form-label">Notes</label>
-                                                            <textarea class="form-control"
-                                                                id="notes{{ transaction.transaction_id }}" name="notes"
-                                                                rows="3"></textarea>
+                                                            <label for="debitAccount{{ transaction.transaction_id }}" class="form-label">Debit Account</label>
+                                                            <select class="form-select" id="debitAccount{{ transaction.transaction_id }}" required>
+                                                                <option value="">Choose debit account...</option>
+                                                                {% for account in accounts %}
+                                                                <option value="{{ account.account_id }}">{{ account.account_id }} - {{ account.name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label for="creditAccount{{ transaction.transaction_id }}" class="form-label">Credit Account</label>
+                                                            <select class="form-select" id="creditAccount{{ transaction.transaction_id }}" required>
+                                                                <option value="">Choose credit account...</option>
+                                                                {% for account in accounts %}
+                                                                <option value="{{ account.account_id }}">{{ account.account_id }} - {{ account.name }}</option>
+                                                                {% endfor %}
+                                                            </select>
                                                         </div>
                                                     </form>
                                                 </div>
@@ -285,65 +329,63 @@
 {% block extra_js %}
 <script>
 $(document).ready(function() {
-    const uploadForm = $('#uploadForm');
-    
-    if (uploadForm.length) {
-        uploadForm.on('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            const progressBar = $('.progress');
-            const progressBarInner = $('.progress-bar');
-            const statusDiv = $('#uploadStatus');
-            const submitButton = $('button[type="submit"]', uploadForm);
-            const modal = $('#uploadModal');
-            
-            // Disable submit button and show progress
-            submitButton.prop('disabled', true);
-            progressBar.removeClass('d-none');
-            progressBarInner.css('width', '0%').attr('aria-valuenow', '0');
-            statusDiv.removeClass('alert-success alert-danger').addClass('d-none');
-            
-            $.ajax({
-                url: '{% url "transaction_mapper:upload_transactions" %}',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                success: function(response) {
-                    statusDiv.removeClass('d-none alert-danger')
-                            .addClass('alert-success')
-                            .html('File uploaded successfully!');
-                    setTimeout(function() {
-                        location.reload();
-                    }, 1500);
-                },
-                error: function(xhr) {
-                    console.log('Upload error:', xhr.responseText);
-                    let errorMessage = 'Error uploading file. Please try again.';
-                    try {
-                        const response = JSON.parse(xhr.responseText);
-                        if (response.error) {
-                            errorMessage = response.error;
-                        }
-                    } catch (e) {
-                        console.error('Error parsing error response:', e);
-                    }
-                    statusDiv.removeClass('d-none alert-success')
-                            .addClass('alert-danger')
-                            .html(errorMessage);
-                },
-                complete: function() {
-                    submitButton.prop('disabled', false);
-                    progressBar.addClass('d-none');
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            });
-        });
+            }
+        }
+        return cookieValue;
     }
-    
+
+    // Setup AJAX CSRF token
+    const csrftoken = getCookie('csrftoken');
+    $.ajaxSetup({
+        beforeSend: function(xhr, settings) {
+            if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+                xhr.setRequestHeader("X-CSRFToken", csrftoken);
+            }
+        }
+    });
+
+    // Map All Functionality
+    $('#mapAllButton').click(function() {
+        const button = $(this);
+        button.prop('disabled', true);
+        button.html('<span class="spinner-border spinner-border-sm me-2"></span>AI Mapping...');
+
+        $.ajax({
+            url: '{% url "transaction_mapper:map_transaction" %}',
+            type: 'POST',
+            data: {
+                map_all: true,
+                use_ai: true
+            },
+            success: function(response) {
+                toastr.success('Successfully initiated AI mapping for all transactions!');
+                setTimeout(function() {
+                    location.reload();
+                }, 1500);
+            },
+            error: function(xhr) {
+                button.prop('disabled', false);
+                button.html('<i class="fas fa-map-marker-alt me-2"></i>Map All');
+                let errorMessage = 'Error initiating AI mapping. Please try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMessage = response.error || errorMessage;
+                } catch (e) {}
+                toastr.error(errorMessage);
+            }
+        });
+    });
+
     // Delete All Functionality
     $('#deleteAllButton').click(function() {
         $('#deleteConfirmModal').modal('show');
@@ -351,6 +393,8 @@ $(document).ready(function() {
 
     $('#confirmDeleteButton').click(function() {
         const button = $(this);
+        const modal = $('#deleteConfirmModal');
+        
         button.prop('disabled', true);
         button.html('<span class="spinner-border spinner-border-sm me-2"></span>Deleting...');
         
@@ -358,12 +402,103 @@ $(document).ready(function() {
             url: '{% url "transaction_mapper:delete_all_transactions" %}',
             type: 'POST',
             success: function(response) {
+                modal.modal('hide');
                 location.reload();
             },
             error: function(xhr) {
                 button.prop('disabled', false);
                 button.html('Delete All');
-                alert('Error deleting transactions. Please try again.');
+                let errorMessage = 'Error deleting transactions. Please try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    if (response.error) errorMessage = response.error;
+                } catch (e) {}
+                alert(errorMessage);
+            }
+        });
+    });
+
+    // File upload functionality
+    $('#uploadForm').on('submit', function(e) {
+        e.preventDefault();
+        
+        const form = $(this);
+        const formData = new FormData(form[0]);
+        const progressBar = $('.progress');
+        const progressBarInner = $('.progress-bar');
+        const statusDiv = $('#uploadStatus');
+        const submitButton = form.find('button[type="submit"]');
+        const modal = $('#uploadModal');
+        
+        // Clear previous status
+        statusDiv.removeClass('alert-success alert-danger').addClass('d-none').html('');
+        
+        // Validate file
+        const fileInput = form.find('input[type="file"]');
+        const file = fileInput[0].files[0];
+        
+        if (!file) {
+            statusDiv.removeClass('d-none').addClass('alert-danger').html('Please select a file to upload');
+            return;
+        }
+        
+        if (!file.name.toLowerCase().endsWith('.csv')) {
+            statusDiv.removeClass('d-none').addClass('alert-danger').html('Please select a CSV file');
+            return;
+        }
+        
+        // Show progress and disable submit
+        submitButton.prop('disabled', true);
+        progressBar.removeClass('d-none');
+        progressBarInner.css('width', '0%').attr('aria-valuenow', 0);
+        
+        $.ajax({
+            url: '{% url "transaction_mapper:upload_transactions" %}',
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                const xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(e) {
+                    if (e.lengthComputable) {
+                        const percent = Math.round((e.loaded / e.total) * 100);
+                        progressBarInner.css('width', percent + '%').attr('aria-valuenow', percent);
+                    }
+                }, false);
+                return xhr;
+            },
+            success: function(response) {
+                statusDiv.removeClass('d-none alert-danger')
+                        .addClass('alert-success')
+                        .html(response.message || 'File uploaded successfully!');
+                
+                // Reset form
+                form[0].reset();
+                
+                // Close modal and refresh page after delay
+                setTimeout(function() {
+                    modal.modal('hide');
+                    window.location.reload();
+                }, 1500);
+            },
+            error: function(xhr) {
+                let errorMessage = 'Error uploading file. Please try again.';
+                try {
+                    const response = JSON.parse(xhr.responseText);
+                    errorMessage = response.error || errorMessage;
+                    if (response.found_columns) {
+                        errorMessage += '<br>Found columns: ' + response.found_columns.join(', ');
+                    }
+                } catch (e) {}
+                
+                statusDiv.removeClass('d-none alert-success')
+                        .addClass('alert-danger')
+                        .html(errorMessage);
+            },
+            complete: function() {
+                submitButton.prop('disabled', false);
+                progressBar.addClass('d-none');
             }
         });
     });

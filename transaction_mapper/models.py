@@ -2,9 +2,8 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
-import uuid
-from django.db.models import functions
 from django.utils import timezone
+import uuid
 
 class Role(models.Model):
     """Role model for user permissions"""
@@ -38,7 +37,6 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # Override groups to add related_name
     groups = models.ManyToManyField(
         Group,
         verbose_name=_('groups'),
@@ -51,7 +49,6 @@ class User(AbstractUser):
         related_query_name='transaction_mapper_user',
     )
 
-    # Override user_permissions to add related_name
     user_permissions = models.ManyToManyField(
         Permission,
         verbose_name=_('user permissions'),
@@ -73,10 +70,7 @@ class User(AbstractUser):
     def update_user_permissions(self):
         """Update user permissions based on their role"""
         if self.role:
-            # Clear existing user permissions
             self.user_permissions.clear()
-            
-            # Add role-specific permissions
             role_permissions = self.role.permissions
             for perm_codename in role_permissions:
                 try:
@@ -95,33 +89,8 @@ class User(AbstractUser):
             return True
         return self.user_permissions.filter(codename=perm.split('.')[-1]).exists()
 
-class UserProfile(models.Model):
-    """Extended user profile information"""
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    department = models.CharField(max_length=100, blank=True)
-    phone_number = models.CharField(max_length=20, blank=True)
-    timezone = models.CharField(max_length=50, default='UTC')
-    notification_preferences = models.JSONField(default=dict)
-    
-    def __str__(self):
-        return f"{self.user.username}'s Profile"
-
-class UserActivity(models.Model):
-    """Track user activities for audit purposes"""
-    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    activity_type = models.CharField(max_length=50)
-    description = models.TextField()
-    ip_address = models.GenericIPAddressField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    
-    class Meta:
-        verbose_name_plural = 'User Activities'
-        ordering = ['-created_at']
-        
-    def __str__(self):
-        return f"{self.user.username} - {self.activity_type} - {self.created_at}"
-
 class Account(models.Model):
+    """Chart of accounts model"""
     account_id = models.CharField(max_length=20, primary_key=True)
     name = models.CharField(max_length=100)
     account_type = models.CharField(max_length=20)
@@ -129,6 +98,11 @@ class Account(models.Model):
 
     def __str__(self):
         return f"{self.account_id} - {self.name}"
+
+    class Meta:
+        ordering = ['account_id']
+        verbose_name = _('account')
+        verbose_name_plural = _('accounts')
 
 class Transaction(models.Model):
     """Transaction model for financial records"""
@@ -148,16 +122,26 @@ class Transaction(models.Model):
     date = models.DateField()
     time = models.TimeField(null=True, blank=True)
     description = models.TextField()
-    account = models.ForeignKey(
-        Account, 
-        on_delete=models.CASCADE, 
-        related_name='transactions',
-        null=True,  
-        blank=True
-    )
     customer_name = models.CharField(max_length=100, null=True, blank=True)
-    transaction_type = models.CharField(max_length=10, choices=TRANSACTION_TYPES)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
+    
+    # Double-entry accounting fields
+    debit_account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='debit_transactions',
+        help_text='Account to be debited'
+    )
+    credit_account = models.ForeignKey(
+        Account,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='credit_transactions',
+        help_text='Account to be credited'
+    )
     
     # Upload tracking
     uploaded_by = models.ForeignKey(
@@ -170,13 +154,6 @@ class Transaction(models.Model):
     uploaded_at = models.DateTimeField(default=timezone.now)
     
     # Mapping fields
-    mapped_account = models.ForeignKey(
-        Account, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        blank=True,
-        related_name='mapped_transactions'
-    )
     mapped_by = models.ForeignKey(
         User,  
         on_delete=models.SET_NULL,
@@ -200,7 +177,8 @@ class Transaction(models.Model):
         indexes = [
             models.Index(fields=['date', 'status']),
             models.Index(fields=['customer_name']),
-            models.Index(fields=['transaction_type']),
+            models.Index(fields=['debit_account']),
+            models.Index(fields=['credit_account']),
         ]
 
     def clean(self):
@@ -215,10 +193,10 @@ class Transaction(models.Model):
         self.full_clean()
         super().save(*args, **kwargs)
 
-    def map_to_account(self, account, user, notes='', confidence=1.0):
-        """Map this transaction to a specific account"""
-        from django.utils import timezone
-        self.mapped_account = account
+    def map_accounts(self, debit_account, credit_account, user, notes='', confidence=1.0):
+        """Map transaction to debit and credit accounts"""
+        self.debit_account = debit_account
+        self.credit_account = credit_account
         self.mapped_by = user
         self.mapped_at = timezone.now()
         self.mapping_notes = notes
@@ -228,6 +206,8 @@ class Transaction(models.Model):
 
     def verify_mapping(self, user):
         """Verify the current mapping"""
+        if not self.debit_account or not self.credit_account:
+            raise ValidationError('Cannot verify transaction without both debit and credit accounts')
         self.status = 'VERIFIED'
         self.save()
 
@@ -235,6 +215,8 @@ class Transaction(models.Model):
         """Reject the current mapping"""
         self.status = 'REJECTED'
         self.mapping_notes = f"Rejected: {reason}"
+        self.debit_account = None
+        self.credit_account = None
         self.save()
 
     def __str__(self):
